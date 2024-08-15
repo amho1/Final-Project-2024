@@ -1,0 +1,150 @@
+import csv
+from datetime import datetime
+import os
+
+# Define the Inventory class
+class Inventory:
+    def __init__(self, item_id, item_name, item_type, item_price=None, item_status=None, item_date=None):
+        self.id = item_id
+        self.name = item_name
+        self.type = item_type
+        self.price = item_price
+        self.status = item_status
+        self.date = item_date
+
+# Function to create sample CSV files
+def create_sample_csv_files():
+    # Sample data
+    manufacturer_data = [
+        ["1167234", "Apple", "phone"],
+        ["2390112", "Dell", "laptop"],
+        ["9034210", "Dell", "tower"],
+        ["7346234", "Lenovo", "laptop", "damaged"],
+        ["3001265", "Samsung", "phone"],
+        ["2347800", "Apple", "laptop"],
+        ["1009453", "Lenovo", "tower"]
+    ]
+    price_data = [
+        ["3001265", "1200"],
+        ["2347800", "999"],
+        ["2390112", "799"],
+        ["1009453", "599"],
+        ["1167234", "534"],
+        ["9034210", "345"],
+        ["7346234", "239"]
+    ]
+    service_dates_data = [
+        ["9034210", "5/27/2025"],
+        ["2390112", "7/2/2024"],
+        ["2347800", "9/1/2024"],
+        ["7346234", "10/1/2024"],
+        ["1009453", "2/1/2025"],
+        ["1167234", "12/1/2024"],
+        ["3001265", "12/2/2022"]
+    ]
+
+    # File paths
+    base_path = '.'  # Set the base path to current directory or adjust as needed
+    manufacturer_path = os.path.join(base_path, 'ManufacturerList.csv')
+    price_path = os.path.join(base_path, 'PriceList.csv')
+    service_dates_path = os.path.join(base_path, 'ServiceDatesList.csv')
+
+    # Write sample data to CSV files
+    with open(manufacturer_path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(manufacturer_data)
+
+    with open(price_path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(price_data)
+
+    with open(service_dates_path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(service_dates_data)
+
+    print('Sample CSV files created successfully.')
+
+# Call the function to create CSV files (for testing purposes)
+create_sample_csv_files()
+
+def main():
+    inventory_list = []
+
+    # Read ManufacturerList.csv
+    manufacturer_path = 'ManufacturerList.csv'
+    with open(manufacturer_path, 'r') as manufacturer:
+        m_list = csv.reader(manufacturer)
+        for each in m_list:
+            item_id = each[0]
+            item_name = each[1]
+            item_type = each[2]
+            item_status = each[3] if len(each) > 3 else None
+            inv_list = Inventory(item_id=item_id, item_name=item_name, item_type=item_type, item_status=item_status)
+            inventory_list.append(inv_list)
+
+    # Read PriceList.csv
+    price_path = 'PriceList.csv'
+    with open(price_path, 'r') as price:
+        p_list = csv.reader(price)
+        for row in p_list:
+            identifier = row[0]
+            cost = float(row[1])  # Convert cost to float
+            for item in inventory_list:
+                if item.id == identifier:
+                    item.price = cost
+
+    # Read ServiceDatesList.csv
+    service_date_path = 'ServiceDatesList.csv'
+    with open(service_date_path, 'r') as service_date:
+        s_list = csv.reader(service_date)
+        for row in s_list:
+            obj = row[0]
+            serviced = row[1]
+            for item in inventory_list:
+                if item.id == obj:
+                    item.date = serviced
+
+    # Sort and write FullInventory.csv
+    inventory_list.sort(key=lambda x: x.name)
+    full_inventory_path = 'FullInventory.csv'
+    with open(full_inventory_path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for each in inventory_list:
+            row = [each.id, each.name, each.type, each.price, each.date if each.date else "", each.status if each.status else ""]
+            writer.writerow(row)
+
+    # Filter by item type and write specific inventory files
+    types = set(item.type for item in inventory_list)
+    for item_type in types:
+        type_inventory_path = f'{item_type.capitalize()}Inventory.csv'
+        with open(type_inventory_path, 'w', newline='') as file:
+            writer = csv.writer(file)
+            for each in inventory_list:
+                if each.type == item_type:
+                    row = [each.id, each.name, each.price, each.date if each.date else "", each.status if each.status else ""]
+                    writer.writerow(row)
+
+    # Filter and write PastServiceDateInventory.csv
+    current_date = datetime.now()
+    past_service_items = [item for item in inventory_list if item.date and datetime.strptime(item.date, '%m/%d/%Y') < current_date]
+    past_service_items.sort(key=lambda x: datetime.strptime(x.date, '%m/%d/%Y'))
+    past_service_date_path = 'PastServiceDateInventory.csv'
+    with open(past_service_date_path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for each in past_service_items:
+            row = [each.id, each.name, each.type, each.price, each.date, each.status if each.status else ""]
+            writer.writerow(row)
+
+    # Filter and write DamagedInventory.csv
+    damaged_items = [item for item in inventory_list if item.status == 'damaged']
+    damaged_items.sort(key=lambda x: x.price, reverse=True)
+    damaged_inventory_path = 'DamagedInventory.csv'
+    with open(damaged_inventory_path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for each in damaged_items:
+            row = [each.id, each.name, each.type, each.price, each.date if each.date else ""]
+            writer.writerow(row)
+
+if __name__ == '__main__':
+    main()
+
